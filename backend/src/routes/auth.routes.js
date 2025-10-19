@@ -5,6 +5,7 @@ const {
   verifyOTPCode,
   resendOTPCode,
   login,
+  googleLogin,
   forgotPassword,
   resetPassword,
 } = require('../controllers/auth.controller');
@@ -43,12 +44,29 @@ const resetPasswordValidation = [
     .withMessage('Password must be at least 8 characters'),
 ];
 
+const googleLoginValidation = [
+  body('idToken').notEmpty().withMessage('Google ID token is required'),
+];
+
 // Routes
+
+// ====================================================================
+// GOOGLE SIGN-IN (PRIMARY AUTHENTICATION METHOD)
+// ====================================================================
+router.post('/google', googleLoginValidation, validate, googleLogin);
+
+// ====================================================================
+// LEGACY AUTHENTICATION ROUTES (DISABLED - Using Google Sign-In Only)
+// ====================================================================
+// Uncomment these routes if you need to support traditional email/password authentication
+// or keep them for admin/testing purposes
+/*
 router.post('/register', registerValidation, validate, register);
 router.post('/verify-otp', otpValidation, validate, verifyOTPCode);
 router.post('/resend-otp', [body('email').isEmail()], validate, resendOTPCode);
 router.post('/login', loginValidation, validate, login);
 router.post('/forgot-password', forgotPasswordValidation, validate, forgotPassword);
 router.post('/reset-password', resetPasswordValidation, validate, resetPassword);
+*/
 
 module.exports = router;

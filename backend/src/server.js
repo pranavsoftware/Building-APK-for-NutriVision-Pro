@@ -7,6 +7,7 @@ const connectDB = require('./config/database');
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const scannerRoutes = require('./routes/scanner.routes');
+const legalRoutes = require('./routes/legal.routes');
 
 // Initialize express app
 const app = express();
@@ -16,6 +17,24 @@ app.set('trust proxy', 1);
 
 // Connect to database
 connectDB();
+
+// Validate required environment variables
+const validateEnv = () => {
+  const required = ['MONGODB_URI', 'JWT_SECRET', 'GOOGLE_CLIENT_ID'];
+  const missing = required.filter(key => !process.env[key]);
+  
+  if (missing.length > 0) {
+    console.error('❌ Missing required environment variables:');
+    missing.forEach(key => console.error(`   - ${key}`));
+    console.error('\nPlease check your .env file');
+    process.exit(1);
+  }
+  
+  console.log('✅ Environment variables validated');
+};
+
+// Validate environment variables
+validateEnv();
 
 // CORS configuration for production
 const corsOptions = {
@@ -66,10 +85,15 @@ app.get('/', (req, res) => {
     message: '🥗 Welcome to NutriVision Pro API',
     version: '1.0.0',
     status: 'running',
+    authentication: {
+      method: 'Google OAuth 2.0',
+      configured: !!process.env.GOOGLE_CLIENT_ID,
+    },
     endpoints: {
       health: '/health',
       api: '/api',
       auth: '/api/auth',
+      googleSignIn: '/api/auth/google',
       user: '/api/user',
       scanner: '/api/scanner',
     },
@@ -108,6 +132,9 @@ app.get('/api', (req, res) => {
     documentation: 'Available endpoints: /api/auth, /api/user, /api/scanner',
   });
 });
+
+// Mount legal routes (for Google OAuth compliance)
+app.use('/', legalRoutes);
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -158,12 +185,20 @@ const server = app.listen(PORT, HOST, () => {
 ║  Environment: ${process.env.NODE_ENV || 'development'}                      ║
 ║  Time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}              ║
 ║                                                       ║
-║  Endpoints:                                           ║
-║  - GET  /                    (API Info)               ║
-║  - GET  /health              (Health Check)           ║
-║  - POST /api/auth/signup     (User Registration)      ║
-║  - POST /api/auth/login      (User Login)             ║
-║  - POST /api/scanner/analyze (Food Analysis)          ║
+║  🔐 Authentication:                                   ║
+║  - Google OAuth: ✅ CONFIGURED                        ║
+║                                                       ║
+║  📡 Endpoints:                                        ║
+║  - GET  /                      (API Info)             ║
+║  - GET  /health                (Health Check)         ║
+║  - GET  /privacy-policy        (Privacy Policy) 🆕    ║
+║  - GET  /terms-of-service      (Terms of Service) 🆕  ║
+║  - POST /api/auth/google       (Google Sign-In)       ║
+║  - POST /api/scanner/analyze   (Food Analysis)        ║
+║  - GET  /api/user/profile      (User Profile)         ║
+║                                                       ║
+║  🔗 Google Client ID:                                 ║
+║  - ${process.env.GOOGLE_CLIENT_ID ? process.env.GOOGLE_CLIENT_ID.substring(0, 20) + '...' : 'Not Set'}       ║
 ║                                                       ║
 ╚═══════════════════════════════════════════════════════╝
   `);

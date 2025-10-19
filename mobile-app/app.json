@@ -3,6 +3,7 @@
     "name": "NutriVision Pro",
     "slug": "nutrivision-pro",
     "version": "1.0.0",
+    "scheme": "nutrivision",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

@@ -77,6 +77,27 @@ export const login = async (email, password) => {
 };
 
 /**
+ * Login with Google
+ */
+export const loginWithGoogle = async (idToken) => {
+  try {
+    const response = await api.post('/auth/google', {
+      idToken,
+    });
+    
+    // Save token and user data
+    if (response.data?.token) {
+      await saveToken(response.data.token);
+      await saveUser(response.data.user);
+    }
+    
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
  * Forgot password - request OTP
  */
 export const forgotPassword = async (email) => {

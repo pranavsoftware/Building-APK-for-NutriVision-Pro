@@ -1,8 +1,12 @@
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const { createOTP, verifyOTP, resendOTP } = require('../services/otp.service');
 const { sendWelcomeEmail } = require('../services/email.service');
 const generateToken = require('../utils/generateToken');
 const { errorResponse, successResponse, isStrongPassword } = require('../utils/helpers');
+
+// Initialize Google OAuth client
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 /**
  * @desc    Register new user
@@ -237,11 +241,91 @@ const resetPassword = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Login with Google
+ * @route   POST /api/auth/google
+ * @access  Public
+ */
+const googleLogin = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return errorResponse(res, 400, 'Google ID token is required');
+    }
+
+    // Verify the Google ID token
+    let ticket;
+    try {
+      ticket = await client.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+    } catch (error) {
+      console.error('Google token verification error:', error);
+      return errorResponse(res, 401, 'Invalid Google token');
+    }
+
+    const payload = ticket.getPayload();
+    const { email, name, picture, sub: googleId } = payload;
+
+    if (!email) {
+      return errorResponse(res, 400, 'Email not found in Google account');
+    }
+
+    // Check if user already exists
+    let user = await User.findOne({ email });
+
+    if (user) {
+      // Update existing user with Google info if not already set
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.profilePicture = picture || user.profilePicture;
+        user.isVerified = true; // Google accounts are pre-verified
+      }
+      user.lastLogin = new Date();
+      await user.save();
+    } else {
+      // Create new user with Google info
+      user = await User.create({
+        name,
+        email,
+        googleId,
+        profilePicture: picture,
+        isVerified: true, // Google accounts are pre-verified
+        lastLogin: new Date(),
+        // No password needed for Google sign-in
+      });
+
+      // Send welcome email
+      await sendWelcomeEmail(user.email, user.name);
+    }
+
+    // Generate JWT token
+    const token = generateToken(user._id);
+
+    successResponse(res, 200, {
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        profilePicture: user.profilePicture,
+        totalScans: user.totalScans,
+      },
+    }, 'Login successful');
+  } catch (error) {
+    console.error('Google login error:', error);
+    errorResponse(res, 500, 'Error in Google login. Please try again.');
+  }
+};
+
 module.exports = {
   register,
   verifyOTPCode,
   resendOTPCode,
   login,
+  googleLogin,
   forgotPassword,
   resetPassword,
 };

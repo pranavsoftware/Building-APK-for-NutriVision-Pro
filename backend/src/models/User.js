@@ -22,9 +22,17 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Please provide a password'],
+    required: function() {
+      // Password is only required if not using Google sign-in
+      return !this.googleId;
+    },
     minlength: [8, 'Password must be at least 8 characters'],
     select: false, // Don't return password in queries by default
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true, // Allows multiple null values but unique non-null values
   },
   profilePicture: {
     type: String,
