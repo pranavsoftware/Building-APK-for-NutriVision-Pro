@@ -1,6 +1,40 @@
 const transporter = require('../config/email');
 
 /**
+ * Send email with retry logic
+ * @param {Object} mailOptions - Nodemailer mail options
+ * @param {Number} retries - Number of retries
+ * @returns {Promise}
+ */
+const sendEmailWithRetry = async (mailOptions, retries = 3) => {
+  // Check if email is configured
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    console.log('⚠️  Email not configured - skipping email send');
+    throw new Error('Email service not configured');
+  }
+
+  for (let i = 0; i < retries; i++) {
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`✅ Email sent successfully to ${mailOptions.to}: ${info.messageId}`);
+      return info;
+    } catch (error) {
+      console.error(`❌ Email send attempt ${i + 1} failed:`, error.message);
+      
+      // If it's the last retry, throw the error
+      if (i === retries - 1) {
+        throw error;
+      }
+      
+      // Wait before retrying (exponential backoff)
+      const waitTime = Math.pow(2, i) * 1000; // 1s, 2s, 4s
+      console.log(`⏳ Retrying in ${waitTime / 1000} seconds...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+};
+
+/**
  * Send OTP email
  */
 const sendOTPEmail = async (email, otp, purpose) => {
@@ -21,7 +55,7 @@ const sendOTPEmail = async (email, otp, purpose) => {
             <p style="color: #6b7280; margin: 0 0 10px 0;">Your verification code is:</p>
             <h1 style="color: #10B981; font-size: 36px; letter-spacing: 8px; margin: 10px 0;">${otp}</h1>
           </div>
-          <p style="color: #6b7280; font-size: 14px;">This code will expire in ${process.env.OTP_EXPIRY} minutes.</p>
+          <p style="color: #6b7280; font-size: 14px;">This code will expire in ${process.env.OTP_EXPIRY || 10} minutes.</p>
           <p style="color: #6b7280; font-size: 14px;">If you didn't create an account, please ignore this email.</p>
         </div>
         <div style="background-color: #1f2937; padding: 20px; text-align: center;">
@@ -41,7 +75,7 @@ const sendOTPEmail = async (email, otp, purpose) => {
             <p style="color: #6b7280; margin: 0 0 10px 0;">Your reset code is:</p>
             <h1 style="color: #10B981; font-size: 36px; letter-spacing: 8px; margin: 10px 0;">${otp}</h1>
           </div>
-          <p style="color: #6b7280; font-size: 14px;">This code will expire in ${process.env.OTP_EXPIRY} minutes.</p>
+          <p style="color: #6b7280; font-size: 14px;">This code will expire in ${process.env.OTP_EXPIRY || 10} minutes.</p>
           <p style="color: #6b7280; font-size: 14px;">If you didn't request a password reset, please ignore this email.</p>
         </div>
         <div style="background-color: #1f2937; padding: 20px; text-align: center;">
@@ -51,13 +85,13 @@ const sendOTPEmail = async (email, otp, purpose) => {
     `;
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM,
+    from: process.env.EMAIL_FROM || 'NutriVision Pro <noreply@nutrivision.com>',
     to: email,
     subject: subject,
     html: message,
   };
 
-  await transporter.sendMail(mailOptions);
+  return await sendEmailWithRetry(mailOptions, 3);
 };
 
 /**
@@ -65,7 +99,7 @@ const sendOTPEmail = async (email, otp, purpose) => {
  */
 const sendWelcomeEmail = async (email, name) => {
   const mailOptions = {
-    from: process.env.EMAIL_FROM,
+    from: process.env.EMAIL_FROM || 'NutriVision Pro <noreply@nutrivision.com>',
     to: email,
     subject: 'Welcome to NutriVision Pro! 🎉',
     html: `
@@ -91,7 +125,7 @@ const sendWelcomeEmail = async (email, name) => {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  return await sendEmailWithRetry(mailOptions, 2);
 };
 
 module.exports = {
