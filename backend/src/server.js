@@ -76,8 +76,20 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check route
+// Health check route (root level)
 app.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'NutriVision API is running',
+    status: 'healthy',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
+// Health check route (under /api for consistency)
+app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'NutriVision API is running',
