@@ -1,0 +1,10 @@
+
+      <svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
+        <rect width="1024" height="1024" fill="#10B981"/>
+        <circle cx="512" cy="512" r="358.4" fill="#FFFFFF" opacity="0.2"/>
+        <circle cx="512" cy="512" r="256" fill="#FFFFFF"/>
+        <path d="M 512 307.2 L 512 460.8" stroke="#10B981" stroke-width="30.72" stroke-linecap="round"/>
+        <ellipse cx="512" cy="563.2" rx="153.6" ry="122.88" fill="#10B981"/>
+        <text x="50%" y="870.4" font-family="Arial, sans-serif" font-size="81.92" font-weight="bold" fill="#10B981" text-anchor="middle">NV</text>
+      </svg>
+    

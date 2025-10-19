@@ -1,0 +1,11 @@
+
+      <svg width="2048" height="2048" xmlns="http://www.w3.org/2000/svg">
+        <rect width="2048" height="2048" fill="#10B981"/>
+        <circle cx="1024" cy="1024" r="307.2" fill="#FFFFFF" opacity="0.2"/>
+        <circle cx="1024" cy="1024" r="204.8" fill="#FFFFFF"/>
+        <path d="M 1024 860.16 L 1024 983.04" stroke="#10B981" stroke-width="30.72" stroke-linecap="round"/>
+        <ellipse cx="1024" cy="1064.96" rx="122.88" ry="81.92" fill="#10B981"/>
+        <text x="50%" y="1331.2" font-family="Arial, sans-serif" font-size="81.92" font-weight="bold" fill="#FFFFFF" text-anchor="middle">NutriVision Pro</text>
+        <text x="50%" y="1433.6" font-family="Arial, sans-serif" font-size="51.2" fill="#FFFFFF" text-anchor="middle" opacity="0.8">AI Food Nutrition Analyzer</text>
+      </svg>
+    

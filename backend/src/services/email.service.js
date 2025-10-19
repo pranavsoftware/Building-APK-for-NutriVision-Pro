@@ -1,0 +1,100 @@
+const transporter = require('../config/email');
+
+/**
+ * Send OTP email
+ */
+const sendOTPEmail = async (email, otp, purpose) => {
+  const subject = purpose === 'signup' 
+    ? 'Verify Your NutriVision Account' 
+    : 'Reset Your Password';
+  
+  const message = purpose === 'signup'
+    ? `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); padding: 30px; text-align: center;">
+          <h1 style="color: white; margin: 0;">🥗 NutriVision Pro</h1>
+        </div>
+        <div style="padding: 30px; background-color: #f9fafb;">
+          <h2 style="color: #1f2937;">Welcome to NutriVision!</h2>
+          <p style="color: #4b5563; font-size: 16px;">Thank you for signing up. Please verify your email address to activate your account.</p>
+          <div style="background-color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <p style="color: #6b7280; margin: 0 0 10px 0;">Your verification code is:</p>
+            <h1 style="color: #10B981; font-size: 36px; letter-spacing: 8px; margin: 10px 0;">${otp}</h1>
+          </div>
+          <p style="color: #6b7280; font-size: 14px;">This code will expire in ${process.env.OTP_EXPIRY} minutes.</p>
+          <p style="color: #6b7280; font-size: 14px;">If you didn't create an account, please ignore this email.</p>
+        </div>
+        <div style="background-color: #1f2937; padding: 20px; text-align: center;">
+          <p style="color: #9ca3af; font-size: 12px; margin: 0;">© 2025 NutriVision Pro. All rights reserved.</p>
+        </div>
+      </div>
+    `
+    : `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); padding: 30px; text-align: center;">
+          <h1 style="color: white; margin: 0;">🥗 NutriVision Pro</h1>
+        </div>
+        <div style="padding: 30px; background-color: #f9fafb;">
+          <h2 style="color: #1f2937;">Password Reset Request</h2>
+          <p style="color: #4b5563; font-size: 16px;">We received a request to reset your password. Use the code below to proceed:</p>
+          <div style="background-color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <p style="color: #6b7280; margin: 0 0 10px 0;">Your reset code is:</p>
+            <h1 style="color: #10B981; font-size: 36px; letter-spacing: 8px; margin: 10px 0;">${otp}</h1>
+          </div>
+          <p style="color: #6b7280; font-size: 14px;">This code will expire in ${process.env.OTP_EXPIRY} minutes.</p>
+          <p style="color: #6b7280; font-size: 14px;">If you didn't request a password reset, please ignore this email.</p>
+        </div>
+        <div style="background-color: #1f2937; padding: 20px; text-align: center;">
+          <p style="color: #9ca3af; font-size: 12px; margin: 0;">© 2025 NutriVision Pro. All rights reserved.</p>
+        </div>
+      </div>
+    `;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM,
+    to: email,
+    subject: subject,
+    html: message,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+/**
+ * Send welcome email
+ */
+const sendWelcomeEmail = async (email, name) => {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM,
+    to: email,
+    subject: 'Welcome to NutriVision Pro! 🎉',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); padding: 30px; text-align: center;">
+          <h1 style="color: white; margin: 0;">🥗 NutriVision Pro</h1>
+        </div>
+        <div style="padding: 30px; background-color: #f9fafb;">
+          <h2 style="color: #1f2937;">Welcome, ${name}! 🎉</h2>
+          <p style="color: #4b5563; font-size: 16px;">Your account has been successfully verified!</p>
+          <p style="color: #4b5563; font-size: 16px;">You can now:</p>
+          <ul style="color: #4b5563; font-size: 16px;">
+            <li>📸 Scan food items to get instant nutritional information</li>
+            <li>📊 Track your nutrition history</li>
+            <li>💪 Make healthier food choices with AI-powered insights</li>
+          </ul>
+          <p style="color: #4b5563; font-size: 16px;">Start your healthy journey today!</p>
+        </div>
+        <div style="background-color: #1f2937; padding: 20px; text-align: center;">
+          <p style="color: #9ca3af; font-size: 12px; margin: 0;">© 2025 NutriVision Pro. All rights reserved.</p>
+        </div>
+      </div>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+module.exports = {
+  sendOTPEmail,
+  sendWelcomeEmail,
+};
