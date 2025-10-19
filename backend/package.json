@@ -2,15 +2,18 @@
   "name": "nutrivision-backend",
   "version": "1.0.0",
   "description": "Backend API for NutriVision Pro - AI-powered food nutrition analyzer",
-  "main": "src/server.js",
+  "main": "api/index.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "vercel-build": "echo 'Building for Vercel serverless deployment'",
+    "test-serverless": "node test-serverless.js",
+    "verify-setup": "node verify-setup.js",
     "verify": "node scripts/verify-deployment.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {
-    "node": ">=16.0.0",
+    "node": ">=18.0.0",
     "npm": ">=8.0.0"
   },
   "keywords": [
@@ -20,7 +23,9 @@
     "gemini",
     "health",
     "react-native",
-    "mobile"
+    "mobile",
+    "serverless",
+    "vercel"
   ],
   "author": "Pranav Rayban <raybanpranav@gmail.com>",
   "license": "MIT",

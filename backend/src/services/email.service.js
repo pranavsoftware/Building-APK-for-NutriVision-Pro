@@ -10,14 +10,13 @@ const sendEmailWithRetry = async (mailOptions, retries = 3) => {
   // Check if email is configured
   if (!emailTransporter.isConfigured()) {
     console.log('⚠️  Email not configured - skipping email send');
-    console.log('💡 Add SENDGRID_API_KEY to Render environment variables');
-    throw new Error('Email service not configured. Add SENDGRID_API_KEY to environment variables.');
+    console.log('💡 Configure EMAIL_SERVICE (sendgrid or gmail) in environment variables');
+    throw new Error('Email service not configured. Set up SendGrid or Gmail in .env file.');
   }
 
   for (let i = 0; i < retries; i++) {
     try {
       const result = await emailTransporter.sendMail(mailOptions);
-      console.log(`✅ Email sent successfully to ${mailOptions.to}`);
       return result;
     } catch (error) {
       console.error(`❌ Email send attempt ${i + 1} failed:`, error.message);

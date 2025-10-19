@@ -1,0 +1,39 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Development files
+.DS_Store
+.vscode/
+.idea/
+
+# Uploads (if any local uploads exist)
+uploads/
+
+# Documentation (optional - comment out if you want docs on deployment)
+README.md
+RENDER_DEPLOYMENT.md
+RENDER_EMAIL_FIX.md
+EMAIL_SETUP_GUIDE.md
+
+# Git
+.git/
+.gitignore
+
+# Scripts (only for local use)
+scripts/
+
+# Render specific files
+Procfile
+render.yaml

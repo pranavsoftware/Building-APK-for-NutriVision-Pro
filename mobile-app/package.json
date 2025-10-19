@@ -6,7 +6,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test-api": "node test-api-connection.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",

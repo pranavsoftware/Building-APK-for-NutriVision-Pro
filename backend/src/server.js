@@ -12,7 +12,7 @@ const legalRoutes = require('./routes/legal.routes');
 // Initialize express app
 const app = express();
 
-// Trust proxy - important for production behind reverse proxies (Render, Railway, etc.)
+// Trust proxy - important for production behind reverse proxies
 app.set('trust proxy', 1);
 
 // Connect to database
@@ -20,7 +20,9 @@ connectDB();
 
 // Validate required environment variables
 const validateEnv = () => {
-  const required = ['MONGODB_URI', 'JWT_SECRET', 'GOOGLE_CLIENT_ID'];
+  const required = ['MONGODB_URI', 'JWT_SECRET'];
+  const optional = ['GOOGLE_CLIENT_ID', 'GEMINI_API_KEY', 'SENDGRID_API_KEY', 'EMAIL_USER'];
+  
   const missing = required.filter(key => !process.env[key]);
   
   if (missing.length > 0) {
@@ -30,7 +32,14 @@ const validateEnv = () => {
     process.exit(1);
   }
   
-  console.log('✅ Environment variables validated');
+  console.log('✅ Required environment variables validated');
+  
+  // Check optional variables
+  const missingOptional = optional.filter(key => !process.env[key]);
+  if (missingOptional.length > 0) {
+    console.warn('⚠️  Optional environment variables not set:');
+    missingOptional.forEach(key => console.warn(`   - ${key}`));
+  }
 };
 
 // Validate environment variables
@@ -62,12 +71,11 @@ app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   next();
 });
 
-// Request logging middleware (only in production)
-if (process.env.NODE_ENV === 'production') {
+// Request logging middleware (development mode)
+if (process.env.NODE_ENV !== 'production') {
   app.use((req, res, next) => {
     const start = Date.now();
     res.on('finish', () => {
@@ -85,15 +93,16 @@ app.get('/', (req, res) => {
     message: '🥗 Welcome to NutriVision Pro API',
     version: '1.0.0',
     status: 'running',
+    environment: process.env.NODE_ENV || 'development',
     authentication: {
-      method: 'Google OAuth 2.0',
-      configured: !!process.env.GOOGLE_CLIENT_ID,
+      methods: ['Email/Password', 'Google OAuth'],
+      emailAuth: true,
+      googleAuth: !!process.env.GOOGLE_CLIENT_ID,
     },
     endpoints: {
       health: '/health',
       api: '/api',
       auth: '/api/auth',
-      googleSignIn: '/api/auth/google',
       user: '/api/user',
       scanner: '/api/scanner',
     },
@@ -129,11 +138,29 @@ app.get('/api', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'NutriVision Pro API v1.0.0',
-    documentation: 'Available endpoints: /api/auth, /api/user, /api/scanner',
+    authentication: {
+      register: 'POST /api/auth/register',
+      login: 'POST /api/auth/login',
+      verifyOTP: 'POST /api/auth/verify-otp',
+      resendOTP: 'POST /api/auth/resend-otp',
+      forgotPassword: 'POST /api/auth/forgot-password',
+      resetPassword: 'POST /api/auth/reset-password',
+      googleLogin: 'POST /api/auth/google (optional)',
+    },
+    user: {
+      profile: 'GET /api/user/profile',
+      updateProfile: 'PUT /api/user/profile',
+      stats: 'GET /api/user/stats',
+    },
+    scanner: {
+      analyze: 'POST /api/scanner/analyze',
+      history: 'GET /api/scanner/history',
+      delete: 'DELETE /api/scanner/history/:id',
+    },
   });
 });
 
-// Mount legal routes (for Google OAuth compliance)
+// Mount legal routes
 app.use('/', legalRoutes);
 
 // API Routes
@@ -146,6 +173,7 @@ app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
     error: 'Route not found',
+    path: req.originalUrl,
   });
 });
 
@@ -171,7 +199,25 @@ app.use((err, req, res, next) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+const HOST = '0.0.0.0'; // Allow connections from network
+
+// Get network IP address
+const getNetworkIP = () => {
+  const { networkInterfaces } = require('os');
+  const nets = networkInterfaces();
+  
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      // Skip internal and non-IPv4 addresses
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return 'YOUR_IP';
+};
+
+const networkIP = getNetworkIP();
 
 const server = app.listen(PORT, HOST, () => {
   console.log(`
@@ -180,28 +226,32 @@ const server = app.listen(PORT, HOST, () => {
 ║         🥗 NutriVision Pro API Server 🥗             ║
 ║                                                       ║
 ║  Status: ✅ RUNNING                                   ║
-║  Port: ${PORT}                                           ║
-║  Host: ${HOST}                                        ║
+║  Port: ${PORT}                                        ║
 ║  Environment: ${process.env.NODE_ENV || 'development'}                      ║
-║  Time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}              ║
+║  Time: ${new Date().toLocaleString()}                ║
 ║                                                       ║
-║  🔐 Authentication:                                   ║
-║  - Google OAuth: ✅ CONFIGURED                        ║
+║  🔐 Authentication Methods:                           ║
+║  - Email/Password: ✅ ENABLED                         ║
+║  - Google OAuth: ${process.env.GOOGLE_CLIENT_ID ? '✅ ENABLED' : '❌ DISABLED'}                        ║
 ║                                                       ║
-║  📡 Endpoints:                                        ║
+║  📡 API Endpoints:                                    ║
 ║  - GET  /                      (API Info)             ║
 ║  - GET  /health                (Health Check)         ║
-║  - GET  /privacy-policy        (Privacy Policy) 🆕    ║
-║  - GET  /terms-of-service      (Terms of Service) 🆕  ║
-║  - POST /api/auth/google       (Google Sign-In)       ║
+║  - POST /api/auth/register     (Sign Up)              ║
+║  - POST /api/auth/login        (Sign In)              ║
+║  - POST /api/auth/verify-otp   (Verify OTP)           ║
 ║  - POST /api/scanner/analyze   (Food Analysis)        ║
 ║  - GET  /api/user/profile      (User Profile)         ║
 ║                                                       ║
-║  🔗 Google Client ID:                                 ║
-║  - ${process.env.GOOGLE_CLIENT_ID ? process.env.GOOGLE_CLIENT_ID.substring(0, 20) + '...' : 'Not Set'}       ║
+║  🌐 Access URLs:                                      ║
+║  - Local: http://localhost:${PORT}                    ║
+║  - Network: http://${networkIP}:${PORT}                    ║
 ║                                                       ║
 ╚═══════════════════════════════════════════════════════╝
   `);
+  
+  console.log(`\n💡 Tip: Mobile app should use this URL in .env file:`);
+  console.log(`   EXPO_PUBLIC_API_BASE_URL=http://${networkIP}:${PORT}/api\n`);
 });
 
 // Graceful shutdown
@@ -222,11 +272,12 @@ process.on('SIGINT', () => {
 });
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (err, promise) => {
+process.on('unhandledRejection', (err) => {
   console.error('❌ Unhandled Promise Rejection:');
   console.error('Error:', err.message);
-  console.error('Promise:', promise);
-  
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('Stack:', err.stack);
+  }
   // Close server & exit process
   server.close(() => {
     process.exit(1);
@@ -237,8 +288,9 @@ process.on('unhandledRejection', (err, promise) => {
 process.on('uncaughtException', (err) => {
   console.error('❌ Uncaught Exception:');
   console.error('Error:', err.message);
-  console.error('Stack:', err.stack);
-  
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('Stack:', err.stack);
+  }
   // Close server & exit process
   server.close(() => {
     process.exit(1);

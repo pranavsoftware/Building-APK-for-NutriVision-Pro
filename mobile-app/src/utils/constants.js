@@ -1,10 +1,24 @@
 // API Configuration
-// Use environment variable or fallback to localhost
-// Change this based on where you're testing:
+// For local development: Use your computer's IP address or localhost
+// For production: Use your Vercel deployment URL
+// 
+// IMPORTANT: After deploying to Vercel, update this with your Vercel URL:
+// Example: https://your-project.vercel.app/api
+//
+// Development options:
 // - Android Emulator: http://10.0.2.2:5000/api
 // - iOS Simulator: http://localhost:5000/api
 // - Physical Device: http://YOUR_COMPUTER_IP:5000/api (get IP with ipconfig/ifconfig)
+//
+// Production:
+// - Vercel: https://your-project.vercel.app/api
+
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
+
+// You can also set different URLs for development and production:
+// export const API_BASE_URL = __DEV__ 
+//   ? 'http://YOUR_COMPUTER_IP:5000/api'  // Development
+//   : 'https://your-project.vercel.app/api';  // Production
 
 // AsyncStorage Keys
 export const STORAGE_KEYS = {
