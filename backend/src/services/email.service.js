@@ -1,23 +1,24 @@
-const transporter = require('../config/email');
+const emailTransporter = require('../config/email');
 
 /**
  * Send email with retry logic
- * @param {Object} mailOptions - Nodemailer mail options
+ * @param {Object} mailOptions - Email options (compatible with nodemailer and SendGrid)
  * @param {Number} retries - Number of retries
  * @returns {Promise}
  */
 const sendEmailWithRetry = async (mailOptions, retries = 3) => {
   // Check if email is configured
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+  if (!emailTransporter.isConfigured()) {
     console.log('⚠️  Email not configured - skipping email send');
-    throw new Error('Email service not configured');
+    console.log('💡 Add SENDGRID_API_KEY to Render environment variables');
+    throw new Error('Email service not configured. Add SENDGRID_API_KEY to environment variables.');
   }
 
   for (let i = 0; i < retries; i++) {
     try {
-      const info = await transporter.sendMail(mailOptions);
-      console.log(`✅ Email sent successfully to ${mailOptions.to}: ${info.messageId}`);
-      return info;
+      const result = await emailTransporter.sendMail(mailOptions);
+      console.log(`✅ Email sent successfully to ${mailOptions.to}`);
+      return result;
     } catch (error) {
       console.error(`❌ Email send attempt ${i + 1} failed:`, error.message);
       

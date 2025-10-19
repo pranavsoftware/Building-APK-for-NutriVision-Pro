@@ -1,63 +1,53 @@
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 
-// Create transporter with better configuration for cloud deployment
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.EMAIL_PORT) || 587,
-  secure: false, // Use STARTTLS
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-  // Add these for better cloud compatibility
-  tls: {
-    rejectUnauthorized: false, // Accept self-signed certificates
-    minVersion: 'TLSv1.2',
-  },
-  connectionTimeout: 10000, // 10 seconds
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
-  // Retry configuration
-  pool: true,
-  maxConnections: 5,
-  maxMessages: 100,
-});
+// Check if SendGrid API key is available
+const isSendGridConfigured = !!process.env.SENDGRID_API_KEY;
 
-// Verify transporter configuration with timeout and graceful handling
-const verifyEmailConfig = async () => {
+// Initialize SendGrid if API key is provided
+if (isSendGridConfigured) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log('✅ SendGrid email service initialized');
+} else {
+  console.log('⚠️  SENDGRID_API_KEY not configured');
+  console.log('📧 Email service will not be available');
+  console.log('💡 Add SENDGRID_API_KEY to Render environment variables');
+}
+
+/**
+ * Send email using SendGrid
+ * @param {Object} mailOptions - Email options
+ * @returns {Promise}
+ */
+const sendMail = async (mailOptions) => {
+  if (!isSendGridConfigured) {
+    console.log('⚠️  Email not configured - skipping email send');
+    throw new Error('Email service not configured. Add SENDGRID_API_KEY to environment variables.');
+  }
+
   try {
-    // Only verify if email credentials are provided
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-      console.log('⚠️  Email credentials not configured - OTP emails will not be sent');
-      return;
-    }
+    // Convert nodemailer format to SendGrid format
+    const msg = {
+      to: mailOptions.to,
+      from: mailOptions.from || process.env.EMAIL_FROM || 'noreply@nutrivision.com',
+      subject: mailOptions.subject,
+      html: mailOptions.html,
+      text: mailOptions.text,
+    };
 
-    // Set a timeout for verification
-    const verifyPromise = new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Email verification timeout'));
-      }, 15000); // 15 seconds timeout
-
-      transporter.verify((error, success) => {
-        clearTimeout(timeout);
-        if (error) {
-          reject(error);
-        } else {
-          resolve(success);
-        }
-      });
-    });
-
-    await verifyPromise;
-    console.log('✅ Email server is ready to send messages');
+    const result = await sgMail.send(msg);
+    console.log(`✅ Email sent successfully to ${mailOptions.to}`);
+    return result;
   } catch (error) {
-    console.error('⚠️  Email configuration warning:', error.message);
-    console.log('📧 Server will continue without email verification');
-    console.log('💡 OTP emails may fail - check EMAIL_USER and EMAIL_PASSWORD in Render');
+    console.error('❌ SendGrid email error:', error.message);
+    if (error.response) {
+      console.error('SendGrid error details:', error.response.body);
+    }
+    throw error;
   }
 };
 
-// Verify in background without blocking server startup
-verifyEmailConfig();
-
-module.exports = transporter;
+// Export a transporter-like object for compatibility
+module.exports = {
+  sendMail,
+  isConfigured: () => isSendGridConfigured,
+};
